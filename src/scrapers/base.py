@@ -31,6 +31,27 @@ def build_job_id(portal: str, raw_id: str) -> str:
     return f"{portal}:{raw_id}"
 
 
+RELEVANT_TITLE_KEYWORDS = [
+    "engineer", "engineering", "sales", "automation", "technical", "commissioning",
+    "project", "field service", "controls", "instrumentation", "scada", "plc",
+    "industrial", "mechanical", "electrical", "system", "service", "technician",
+    "business development", "account manager", "solutions", "pre-sales",
+]
+
+IRRELEVANT_TITLE_KEYWORDS = [
+    "diesel mechanic", "tradie", "chef", "nurse", "teacher", "driver",
+    "cleaner", "barista", "retail", "hospitality", "childcare", "hairdresser",
+    "accountant", "lawyer", "solicitor", "dentist", "doctor",
+]
+
+
+def is_relevant_title(title: str) -> bool:
+    lower = title.lower()
+    if any(kw in lower for kw in IRRELEVANT_TITLE_KEYWORDS):
+        return False
+    return any(kw in lower for kw in RELEVANT_TITLE_KEYWORDS)
+
+
 def clean_text(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 

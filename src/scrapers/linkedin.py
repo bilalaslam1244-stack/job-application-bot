@@ -9,14 +9,43 @@ class LinkedInScraper(BaseScraper):
     PORTAL = "linkedin"
     BASE_URL = "https://www.linkedin.com"
 
+    # LinkedIn uses city names better than country names
+    LOCATION_MAP = {
+        "UAE": "Dubai",
+        "Qatar": "Doha",
+        "Saudi Arabia": "Riyadh",
+        "Australia": "Australia",
+        "United Kingdom": "United Kingdom",
+        "France": "France",
+        "Germany": "Germany",
+        "Netherlands": "Netherlands",
+        "Canada": "Canada",
+        "Singapore": "Singapore",
+        "Ireland": "Ireland",
+        "Belgium": "Belgium",
+        "Sweden": "Sweden",
+        "Norway": "Oslo",
+        "Switzerland": "Zurich",
+        "Denmark": "Copenhagen",
+        "Austria": "Vienna",
+        "Finland": "Helsinki",
+        "USA": "United States",
+        "New Zealand": "New Zealand",
+        "Japan": "Japan",
+        "South Korea": "South Korea",
+        "Luxembourg": "Luxembourg",
+        "Hong Kong": "Hong Kong",
+    }
+
     async def search_jobs(self, roles: list[str], countries: list[str], max_jobs: int = 100) -> list[Job]:
         jobs = []
         async with async_playwright() as p:
             await self._setup_context(p)
-            per_combo = max(1, max_jobs // (len(roles) * min(len(countries), 8)))
+            per_combo = max(2, max_jobs // max(1, len(roles) * len(countries)))
             for role in roles:
-                for country in countries[:8]:
-                    batch = await self._search_one(role, country, per_combo)
+                for country in countries:
+                    location = self.LOCATION_MAP.get(country, country)
+                    batch = await self._search_one(role, location, per_combo)
                     jobs.extend(batch)
                     if len(jobs) >= max_jobs:
                         break

@@ -64,13 +64,20 @@ class Runner:
             except Exception as e:
                 print(f"[{portal_name}] ERROR: {e}")
 
+        from src.scrapers.base import is_relevant_title
         new_jobs = []
+        skipped = 0
         for job in all_jobs:
+            if not is_relevant_title(job.title):
+                skipped += 1
+                continue
             if not self.tracker.get_job(job.id):
                 self.tracker.insert_job(job)
                 await self.notifier.notify_new_job(job)
                 new_jobs.append(job)
                 print(f"  + {job.title} | {job.company} | {job.location}")
+        if skipped:
+            print(f"  (filtered out {skipped} irrelevant titles)")
 
         print(f"\nSearch complete. {len(new_jobs)} new jobs saved.")
         return new_jobs
