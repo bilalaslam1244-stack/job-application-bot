@@ -14,12 +14,31 @@ LOGIN_URLS = {
 }
 
 
+def _find_brave() -> str | None:
+    import os
+    candidates = [
+        r"C:\Program Files\BraveSoftware\Brave-Browser\Application\brave.exe",
+        r"C:\Program Files (x86)\BraveSoftware\Brave-Browser\Application\brave.exe",
+        os.path.expandvars(r"%LOCALAPPDATA%\BraveSoftware\Brave-Browser\Application\brave.exe"),
+    ]
+    return next((p for p in candidates if Path(p).exists()), None)
+
+
 async def _manual_login(portal: str, session_path: str):
     from playwright.async_api import async_playwright
     from playwright_stealth import stealth_async
 
+    brave_path = _find_brave()
+    if brave_path:
+        print(f"Using Brave browser at: {brave_path}")
+    else:
+        print("Brave not found — using built-in Chromium.")
+
     async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=False)
+        launch_kwargs = {"headless": False}
+        if brave_path:
+            launch_kwargs["executable_path"] = brave_path
+        browser = await p.chromium.launch(**launch_kwargs)
         context = await browser.new_context(viewport={"width": 1280, "height": 900})
         page = await context.new_page()
         await stealth_async(page)
