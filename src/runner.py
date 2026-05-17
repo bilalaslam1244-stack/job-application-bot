@@ -10,6 +10,7 @@ from src.scrapers.seek import SeekScraper
 from src.scrapers.reed import ReedScraper
 from src.scrapers.stepstone import StepStoneScraper
 from src.appliers.indeed import IndeedApplier
+from src.appliers.seek import SeekApplier
 from src.appliers.semi_auto import SemiAutoApplier
 from src.status_checker.linkedin import LinkedInStatusChecker
 from src.status_checker.indeed import IndeedStatusChecker
@@ -91,10 +92,12 @@ class Runner:
             max_today = rl.max_applications_per_day.get(job.portal, 0)
 
             if max_today == 0:
-                # LinkedIn — open in browser for manual apply
-                import webbrowser
-                print(f"\n[LINKEDIN — MANUAL] {job.title} at {job.company}\n{job.url}")
-                webbrowser.open(job.url)
+                # LinkedIn — send Telegram with link + cover letter, no browser popup
+                letter = self.cover_gen.generate_with_fallback(job)
+                self.cover_gen.save(job, letter)
+                await self.notifier.notify_manual_apply(job, letter)
+                self.tracker.update_status(job.id, "skipped")
+                print(f"  LinkedIn: {job.title} at {job.company} — Telegram sent")
                 continue
 
             if applied_counts.get(job.portal, 0) >= max_today:
@@ -107,17 +110,33 @@ class Runner:
                 if job.portal == "indeed":
                     p = cfg.portals["indeed"]
                     success = await IndeedApplier(p.email, p.password, cfg.resume_path).apply(job, letter, self.tracker)
-                else:
-                    p = cfg.portals[job.portal]
-                    success = await SemiAutoApplier(job.portal, p.email, p.password).apply(job, letter, self.tracker)
+                    result = "applied" if success else "failed"
 
-                if success:
+                elif job.portal == "seek":
+                    p = cfg.portals["seek"]
+                    result = await SeekApplier(p.email, p.password, cfg.resume_path).apply(job, letter, self.tracker)
+
+                else:
+                    # Reed, StepStone — attempt semi-auto, fall back to manual notify
+                    p = cfg.portals[job.portal]
+                    result = await SemiAutoApplier(job.portal, p.email, p.password).apply(job, letter, self.tracker)
+
+                if result == "applied":
                     applied_counts[job.portal] = applied_counts.get(job.portal, 0) + 1
                     await self.notifier.notify_applied(job, letter[:200])
-                    print(f"Applied: {job.title} at {job.company} ({job.portal})")
+                    print(f"  Applied: {job.title} at {job.company} ({job.portal})")
+
+                elif result == "manual_required":
+                    # Send Telegram with link — user applies in 2 min, no blocking
+                    await self.notifier.notify_manual_apply(job, letter)
+                    self.tracker.update_status(job.id, "skipped")
+                    print(f"  Manual needed: {job.title} at {job.company} — Telegram sent")
+
+                else:
+                    print(f"  Failed: {job.title} at {job.company}")
 
             except Exception as e:
-                print(f"Apply failed {job.id}: {e}")
+                print(f"Apply error {job.id}: {e}")
                 await self.notifier.notify_error(job.portal, str(e))
 
             delay = rl.delay_between_applications_seconds + random.uniform(0, rl.delay_randomisation_seconds)

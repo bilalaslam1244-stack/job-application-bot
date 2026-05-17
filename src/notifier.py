@@ -62,5 +62,23 @@ class Notifier:
             f"Bot resumes automatically once session is restored."
         )
 
+    async def notify_manual_apply(self, job: Job, cover_letter: str):
+        excerpt = cover_letter[:300] + "..." if len(cover_letter) > 300 else cover_letter
+        await self._send(
+            f"👆 <b>Manual Apply Needed</b>\n\n"
+            f"<b>{job.title}</b> at <b>{job.company}</b>\n"
+            f"📍 {job.location}\n"
+            f"🔗 {job.url}\n\n"
+            f"Cover letter ready:\n<i>{excerpt}</i>"
+        )
+
+    async def notify_linkedin_job(self, job: Job):
+        await self._send(
+            f"🔵 <b>LinkedIn — Apply Manually</b>\n\n"
+            f"<b>{job.title}</b> at <b>{job.company}</b>\n"
+            f"📍 {job.location}\n"
+            f"🔗 {job.url}"
+        )
+
     async def notify_error(self, portal: str, error: str):
         await self._send(f"🚨 <b>Error — {portal.title()}</b>\n\n<code>{error[:500]}</code>")
