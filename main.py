@@ -24,7 +24,7 @@ def _find_brave() -> str | None:
     return next((p for p in candidates if Path(p).exists()), None)
 
 
-async def _manual_login(portal: str, session_path: str):
+async def _manual_login(portal: str, session_path: str, apply_stealth: bool = True):
     from playwright.async_api import async_playwright
     from playwright_stealth import stealth_async
 
@@ -41,7 +41,8 @@ async def _manual_login(portal: str, session_path: str):
         browser = await p.chromium.launch(**launch_kwargs)
         context = await browser.new_context(viewport={"width": 1280, "height": 900})
         page = await context.new_page()
-        await stealth_async(page)
+        if apply_stealth:
+            await stealth_async(page)
         await page.goto(LOGIN_URLS[portal])
 
         print(f"\nBrowser open for {portal.title()}.")
@@ -101,12 +102,13 @@ def status():
 
 @cli.command()
 @click.argument("portal", type=click.Choice(["linkedin", "indeed", "seek", "reed", "stepstone"]))
-def login(portal):
+@click.option("--no-stealth", is_flag=True, default=False, help="Disable stealth mode (try if page shows white screen)")
+def login(portal, no_stealth):
     """Manually log into a portal and save the session for bot reuse."""
     session_path = f"data/sessions/{portal}_session.json"
     Path("data/sessions").mkdir(parents=True, exist_ok=True)
     print(f"\nOpening {portal.title()} login page...")
-    asyncio.run(_manual_login(portal, session_path))
+    asyncio.run(_manual_login(portal, session_path, apply_stealth=not no_stealth))
 
 
 @cli.command()
