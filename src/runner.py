@@ -31,13 +31,23 @@ class Runner:
         limit = cfg.search.max_jobs_per_run
         all_jobs: list[Job] = []
 
+        # Limit combinations per run — too many = timeout
+        # Rotate through roles/countries across runs so everything gets covered over time
+        import hashlib, datetime
+        day_seed = int(datetime.date.today().strftime("%j"))
+        active_roles = roles[day_seed % max(1, len(roles)):][:2] + roles[:day_seed % max(1, len(roles))]
+        active_roles = list(dict.fromkeys(active_roles))[:3]
+        tier1 = cfg.search.tier1[:3]
+
         scrapers = [
-            ("linkedin",  lambda p: LinkedInScraper(p.email, p.password).search_jobs(roles, countries[:8], limit // 5)),
-            ("indeed",    lambda p: IndeedScraper(p.email, p.password).search_jobs(roles, countries, limit // 5)),
-            ("seek",      lambda p: SeekScraper(p.email, p.password).search_jobs(roles, limit // 5)),
-            ("reed",      lambda p: ReedScraper(p.email, p.password).search_jobs(roles, limit // 5)),
-            ("stepstone", lambda p: StepStoneScraper(p.email, p.password).search_jobs(roles, limit // 5)),
+            ("linkedin",  lambda p: LinkedInScraper(p.email, p.password).search_jobs(active_roles, tier1, 20)),
+            ("indeed",    lambda p: IndeedScraper(p.email, p.password).search_jobs(active_roles, tier1, 20)),
+            ("seek",      lambda p: SeekScraper(p.email, p.password).search_jobs(active_roles, 20)),
+            ("reed",      lambda p: ReedScraper(p.email, p.password).search_jobs(active_roles, 20)),
+            ("stepstone", lambda p: StepStoneScraper(p.email, p.password).search_jobs(active_roles, 20)),
         ]
+        print(f"Roles this run: {active_roles}")
+        print(f"Countries this run: {tier1}")
 
         for portal_name, scrape_fn in scrapers:
             portal = cfg.portals[portal_name]
@@ -46,11 +56,11 @@ class Runner:
                 continue
             print(f"[{portal_name}] searching...", flush=True)
             try:
-                jobs = await asyncio.wait_for(scrape_fn(portal), timeout=120)
+                jobs = await asyncio.wait_for(scrape_fn(portal), timeout=300)
                 print(f"[{portal_name}] {len(jobs)} results found")
                 all_jobs.extend(jobs)
             except asyncio.TimeoutError:
-                print(f"[{portal_name}] timed out after 2 minutes — skipping")
+                print(f"[{portal_name}] timed out — skipping")
             except Exception as e:
                 print(f"[{portal_name}] ERROR: {e}")
 

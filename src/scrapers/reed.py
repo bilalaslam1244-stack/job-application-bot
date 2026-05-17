@@ -41,12 +41,25 @@ class ReedScraper(BaseScraper):
         return jobs
 
     async def _parse_card(self, card) -> Optional[Job]:
-        title_el = await card.query_selector("h2.title a")
-        company_el = await card.query_selector("span.recruiter")
-        location_el = await card.query_selector("li.location span")
-
+        title_el = (
+            await card.query_selector("h2.title a")
+            or await card.query_selector("a[data-id='job-title']")
+            or await card.query_selector("h3 a")
+            or await card.query_selector("a[href*='/jobs/']")
+        )
         if not title_el:
             return None
+
+        company_el = (
+            await card.query_selector("span.recruiter")
+            or await card.query_selector("a.gtmJobListingPostedBy")
+            or await card.query_selector("[class*='recruiter']")
+        )
+        location_el = (
+            await card.query_selector("li.location span")
+            or await card.query_selector("span[itemprop='addressLocality']")
+            or await card.query_selector("[class*='location']")
+        )
 
         title = clean_text(await title_el.inner_text())
         company = clean_text(await company_el.inner_text()) if company_el else "Unknown"
@@ -55,6 +68,8 @@ class ReedScraper(BaseScraper):
         url = f"{self.BASE_URL}{href}" if href.startswith("/") else href
         match = re.search(r"/jobs/(\d+)", url)
         raw_id = match.group(1) if match else re.sub(r"[^\w]", "", href)[-10:]
+        if not raw_id:
+            return None
 
         return Job(
             id=build_job_id(self.PORTAL, raw_id),

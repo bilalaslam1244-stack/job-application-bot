@@ -46,20 +46,36 @@ class SeekScraper(BaseScraper):
         return jobs
 
     async def _parse_card(self, card) -> Optional[Job]:
-        title_el = await card.query_selector("a[data-testid='job-title']")
-        company_el = await card.query_selector("a[data-testid='job-company-name']")
-        location_el = await card.query_selector("span[data-testid='job-card-location']")
-
+        # Try multiple selector patterns — Seek updates HTML regularly
+        title_el = (
+            await card.query_selector("a[data-automation='jobTitle']")
+            or await card.query_selector("a[data-testid='job-title']")
+            or await card.query_selector("h3 a")
+            or await card.query_selector("a[href*='/job/']")
+        )
         if not title_el:
             return None
+
+        company_el = (
+            await card.query_selector("a[data-automation='jobCompany']")
+            or await card.query_selector("a[data-testid='job-company-name']")
+            or await card.query_selector("[class*='company']")
+        )
+        location_el = (
+            await card.query_selector("span[data-automation='jobLocation']")
+            or await card.query_selector("span[data-testid='job-card-location']")
+            or await card.query_selector("[class*='location']")
+        )
 
         title = clean_text(await title_el.inner_text())
         company = clean_text(await company_el.inner_text()) if company_el else "Unknown"
         location = clean_text(await location_el.inner_text()) if location_el else "Australia"
         href = await title_el.get_attribute("href") or ""
-        url = f"{self.BASE_URL}{href}" if href.startswith("/") else href
+        url = f"https://www.seek.com.au{href}" if href.startswith("/") else href
         match = re.search(r"/job/(\d+)", url)
-        raw_id = match.group(1) if match else url[-10:]
+        raw_id = match.group(1) if match else re.sub(r"[^\d]", "", href)[-10:]
+        if not raw_id:
+            return None
 
         return Job(
             id=build_job_id(self.PORTAL, raw_id),
