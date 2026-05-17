@@ -1,8 +1,37 @@
 import asyncio
 import click
+from pathlib import Path
 from src.config import load_config, ConfigError
 from src.tracker import Tracker
 from src.runner import Runner
+
+LOGIN_URLS = {
+    "linkedin":  "https://www.linkedin.com/login",
+    "indeed":    "https://secure.indeed.com/auth",
+    "seek":      "https://www.seek.com.au/oauth/login",
+    "reed":      "https://www.reed.co.uk/login",
+    "stepstone": "https://www.stepstone.de/en/login",
+}
+
+
+async def _manual_login(portal: str, session_path: str):
+    from playwright.async_api import async_playwright
+    from playwright_stealth import stealth_async
+
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(headless=False)
+        context = await browser.new_context(viewport={"width": 1280, "height": 900})
+        page = await context.new_page()
+        await stealth_async(page)
+        await page.goto(LOGIN_URLS[portal])
+
+        print(f"\nBrowser open for {portal.title()}.")
+        print("Log in normally (enter your email, check for the code, submit).")
+        input("Press ENTER here once you are fully logged in and can see your dashboard: ")
+
+        await context.storage_state(path=session_path)
+        await browser.close()
+        print(f"Session saved. Bot will reuse this login automatically.")
 
 
 @click.group()
@@ -49,6 +78,16 @@ def status():
             click.echo(f"  {label}: {count}")
     click.echo("-" * 30)
     click.echo(f"  Total: {sum(stats.values())}\n")
+
+
+@cli.command()
+@click.argument("portal", type=click.Choice(["linkedin", "indeed", "seek", "reed", "stepstone"]))
+def login(portal):
+    """Manually log into a portal and save the session for bot reuse."""
+    session_path = f"data/sessions/{portal}_session.json"
+    Path("data/sessions").mkdir(parents=True, exist_ok=True)
+    print(f"\nOpening {portal.title()} login page...")
+    asyncio.run(_manual_login(portal, session_path))
 
 
 @cli.command()

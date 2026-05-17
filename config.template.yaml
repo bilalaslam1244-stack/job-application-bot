@@ -32,11 +32,11 @@ portals:
     enabled: true
   indeed:
     email: "REPLACE_ME"
-    password: "REPLACE_ME"
+    password: ""          # uses magic link login — run: python main.py login indeed
     enabled: true
   seek:
     email: "REPLACE_ME"
-    password: "REPLACE_ME"
+    password: ""          # uses magic link login — run: python main.py login seek
     enabled: true
   reed:
     email: "REPLACE_ME"
