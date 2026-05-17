@@ -1,3 +1,4 @@
+import asyncio
 import re
 from typing import Optional
 from playwright.async_api import async_playwright
@@ -24,12 +25,16 @@ class SeekScraper(BaseScraper):
     async def _search_one(self, role: str, limit: int) -> list[Job]:
         page = await self._new_stealth_page()
         query = role.replace(" ", "-").lower()
-        url = f"{self.BASE_URL}/{query}-jobs?visa=1&sortmode=ListedDate"
-        await page.goto(url)
-        await self._random_delay(2, 4)
+        url = f"{self.BASE_URL}/{query}-jobs?sortmode=ListedDate&daterange=7"
+        await page.goto(url, wait_until="domcontentloaded")
+        await asyncio.sleep(3)
 
         jobs = []
-        cards = await page.query_selector_all("article[data-testid='job-card']")
+        cards = []
+        for sel in ["article[data-testid='job-card']", "article[data-card-type='JobCard']", "div[data-automation='jobListing']"]:
+            cards = await page.query_selector_all(sel)
+            if cards:
+                break
         for card in cards[:limit]:
             try:
                 job = await self._parse_card(card)

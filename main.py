@@ -131,11 +131,11 @@ def debug(portal):
         from pathlib import Path
 
         SEARCH_URLS = {
-            "linkedin":  f"https://www.linkedin.com/jobs/search/?keywords=Sales+Engineer+visa+sponsorship&location={countries[0]}",
-            "indeed":    f"https://www.indeed.com/jobs?q=Sales+Engineer+visa+sponsorship&l={countries[0]}",
-            "seek":      "https://www.seek.com.au/sales-engineer-jobs?visa=1",
-            "reed":      "https://www.reed.co.uk/jobs/sales-engineer-jobs?keywords=visa+sponsorship",
-            "stepstone": "https://www.stepstone.de/jobs/Sales+Engineer?q=visa+sponsorship",
+            "linkedin":  f"https://www.linkedin.com/jobs/search/?keywords=Sales+Engineer&location={countries[0]}&sortBy=DD",
+            "indeed":    f"https://au.indeed.com/jobs?q=Sales+Engineer&l=Australia&sort=date",
+            "seek":      "https://www.seek.com.au/sales-engineer-jobs?sortmode=ListedDate",
+            "reed":      "https://www.reed.co.uk/jobs/sales-engineer-jobs?sortby=displaydate",
+            "stepstone": "https://www.stepstone.de/jobs/Sales+Engineer?sort=2",
         }
 
         async with async_playwright() as p:

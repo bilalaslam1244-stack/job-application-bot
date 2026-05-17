@@ -27,14 +27,19 @@ class LinkedInScraper(BaseScraper):
 
     async def _search_one(self, role: str, country: str, limit: int) -> list[Job]:
         page = await self._new_stealth_page()
-        query = f"{role} visa sponsorship".replace(" ", "%20")
+        query = role.replace(" ", "%20")
         location = country.replace(" ", "%20")
-        url = f"{self.BASE_URL}/jobs/search/?keywords={query}&location={location}&f_WT=2&sortBy=DD"
-        await page.goto(url)
-        await self._random_delay(2, 4)
+        url = f"{self.BASE_URL}/jobs/search/?keywords={query}&location={location}&sortBy=DD&f_TPR=r604800"
+        await page.goto(url, wait_until="domcontentloaded")
+        await self._random_delay(3, 5)
 
         jobs = []
-        cards = await page.query_selector_all("div.job-search-card")
+        # Try multiple selectors — LinkedIn changes these frequently
+        cards = []
+        for sel in ["div.job-search-card", "li.jobs-search-results__list-item", "div[data-job-id]", "li[class*='job-result']"]:
+            cards = await page.query_selector_all(sel)
+            if cards:
+                break
         for card in cards[:limit]:
             try:
                 job = await self._parse_card(card)
