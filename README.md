@@ -11,7 +11,7 @@ Automated job application bot for engineering roles with visa sponsorship. Searc
 Open **PowerShell as Administrator** and run this single command:
 
 ```powershell
-irm https://raw.githubusercontent.com/bilalaslam1244-stack/job-application-bot/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/bilalaslam1244-stack/job-application-bot/master/install.ps1 | iex
 ```
 
 This automatically:

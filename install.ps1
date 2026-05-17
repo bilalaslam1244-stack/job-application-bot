@@ -1,6 +1,6 @@
 # Job Application Bot — Windows Installer
 # Run as Administrator in PowerShell:
-#   irm https://raw.githubusercontent.com/bilalaslam1244-stack/job-application-bot/main/install.ps1 | iex
+#   irm https://raw.githubusercontent.com/bilalaslam1244-stack/job-application-bot/master/install.ps1 | iex
 
 $ErrorActionPreference = "Stop"
 $REPO_URL = "https://github.com/bilalaslam1244-stack/job-application-bot"
