@@ -93,7 +93,8 @@ class LinkedInScraper(BaseScraper):
             return None
 
         url = await link_el.get_attribute("href") or ""
-        match = re.search(r"/jobs/view/(\d+)", url)
+        # Handle both /jobs/view/1234567890 and /jobs/view/title-slug-1234567890
+        match = re.search(r"(\d{7,})", url)
         if not match:
             return None
         job_id = match.group(1)

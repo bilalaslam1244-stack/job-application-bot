@@ -180,6 +180,19 @@ def debug(portal):
 
     asyncio.run(_debug_scrape())
 
+    # Also run the actual scraper to verify end-to-end
+    print("\nRunning actual scraper (3 jobs max)...")
+    try:
+        jobs = asyncio.run(scrapers[portal]())
+        if jobs:
+            for j in jobs:
+                print(f"  PARSED: {j.title} | {j.company} | {j.location}")
+        else:
+            print("  Scraper returned 0 jobs — _parse_card failing on all cards")
+    except Exception as e:
+        print(f"  Scraper exception: {e}")
+        traceback.print_exc()
+
 
 @cli.command()
 @click.argument("portal", type=click.Choice(["linkedin", "indeed", "seek", "reed", "stepstone"]))
