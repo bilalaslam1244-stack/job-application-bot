@@ -82,27 +82,55 @@ class LinkedInScraper(BaseScraper):
         return jobs
 
     async def _parse_card(self, card) -> Optional[Job]:
-        title_el = await card.query_selector("h3.base-search-card__title")
-        company_el = await card.query_selector("h4.base-search-card__subtitle")
-        location_el = await card.query_selector("span.job-search-card__location")
-        link_el = await card.query_selector("a.base-card__full-link")
-
-        if not all([title_el, company_el, link_el]):
+        # Link — try all known LinkedIn card link selectors
+        link_el = (
+            await card.query_selector("a.base-card__full-link")
+            or await card.query_selector("a[href*='/jobs/view/']")
+            or await card.query_selector("a.job-card-list__title")
+            or await card.query_selector("a[data-tracking-control-name*='job']")
+        )
+        if not link_el:
             return None
 
-        title = clean_text(await title_el.inner_text())
-        company = clean_text(await company_el.inner_text())
-        location = clean_text(await location_el.inner_text()) if location_el else ""
-        url = await link_el.get_attribute("href")
-        match = re.search(r"/jobs/view/(\d+)", url or "")
+        url = await link_el.get_attribute("href") or ""
+        match = re.search(r"/jobs/view/(\d+)", url)
         if not match:
             return None
+        job_id = match.group(1)
 
+        # Title
+        title_el = (
+            await card.query_selector("h3.base-search-card__title")
+            or await card.query_selector("h3[class*='title']")
+            or await card.query_selector("span.sr-only")
+            or link_el  # fallback: use link text
+        )
+        title = clean_text(await title_el.inner_text()) if title_el else ""
+        if not title:
+            # Try aria-label on the link
+            title = (await link_el.get_attribute("aria-label") or "").strip()
+        if not title:
+            return None
+
+        # Company
+        company_el = (
+            await card.query_selector("h4.base-search-card__subtitle")
+            or await card.query_selector("h4[class*='subtitle']")
+            or await card.query_selector("a.hidden-nested-link")
+            or await card.query_selector("[class*='company']")
+        )
+        company = clean_text(await company_el.inner_text()) if company_el else "Unknown"
+
+        # Location
+        location_el = (
+            await card.query_selector("span.job-search-card__location")
+            or await card.query_selector("span[class*='location']")
+        )
+        location = clean_text(await location_el.inner_text()) if location_el else ""
         country = location.split(",")[-1].strip() if "," in location else location
 
-        # Description fetched at apply time — no per-card page load here
         return Job(
-            id=build_job_id(self.PORTAL, match.group(1)),
+            id=build_job_id(self.PORTAL, job_id),
             portal=self.PORTAL,
             title=title,
             company=company,

@@ -131,7 +131,7 @@ def debug(portal):
         from pathlib import Path
 
         SEARCH_URLS = {
-            "linkedin":  f"https://www.linkedin.com/jobs/search/?keywords=Sales+Engineer&location={countries[0]}&sortBy=DD",
+            "linkedin":  f"https://www.linkedin.com/jobs/search/?keywords=Sales+Engineer&location=Dubai&sortBy=DD",
             "indeed":    f"https://au.indeed.com/jobs?q=Sales+Engineer&l=Australia&sort=date",
             "seek":      "https://www.seek.com.au/sales-engineer-jobs?sortmode=ListedDate",
             "reed":      "https://www.reed.co.uk/jobs/sales-engineer-jobs?sortby=displaydate",
