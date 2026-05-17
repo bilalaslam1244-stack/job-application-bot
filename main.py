@@ -102,6 +102,47 @@ def status():
 
 @cli.command()
 @click.argument("portal", type=click.Choice(["linkedin", "indeed", "seek", "reed", "stepstone"]))
+def debug(portal):
+    """Test a single portal scraper and print raw results."""
+    import traceback
+    from src.config import load_config
+    from src.scrapers.linkedin import LinkedInScraper
+    from src.scrapers.indeed import IndeedScraper
+    from src.scrapers.seek import SeekScraper
+    from src.scrapers.reed import ReedScraper
+    from src.scrapers.stepstone import StepStoneScraper
+
+    cfg = load_config()
+    p = cfg.portals[portal]
+    roles = cfg.search.roles[:1]       # just first role
+    countries = cfg.search.tier1[:2]   # just first 2 countries
+
+    scrapers = {
+        "linkedin":  lambda: LinkedInScraper(p.email, p.password).search_jobs(roles, countries, 3),
+        "indeed":    lambda: IndeedScraper(p.email, p.password).search_jobs(roles, countries, 3),
+        "seek":      lambda: SeekScraper(p.email, p.password).search_jobs(roles, 3),
+        "reed":      lambda: ReedScraper(p.email, p.password).search_jobs(roles, 3),
+        "stepstone": lambda: StepStoneScraper(p.email, p.password).search_jobs(roles, 3),
+    }
+
+    print(f"\nDebugging {portal} — role: {roles[0]}, countries: {countries}")
+    print("-" * 50)
+    try:
+        jobs = asyncio.run(scrapers[portal]())
+        if not jobs:
+            print("No jobs returned. Possible causes:")
+            print("  - Selectors changed (portal updated their HTML)")
+            print("  - Login required (run: python main.py login <portal>)")
+            print("  - Search returned no results for these terms")
+        for j in jobs:
+            print(f"  FOUND: {j.title} | {j.company} | {j.location} | visa={j.visa_sponsorship}")
+    except Exception as e:
+        print(f"EXCEPTION: {e}")
+        traceback.print_exc()
+
+
+@cli.command()
+@click.argument("portal", type=click.Choice(["linkedin", "indeed", "seek", "reed", "stepstone"]))
 @click.option("--no-stealth", is_flag=True, default=False, help="Disable stealth mode (try if page shows white screen)")
 def login(portal, no_stealth):
     """Manually log into a portal and save the session for bot reuse."""

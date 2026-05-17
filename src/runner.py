@@ -31,39 +31,37 @@ class Runner:
         limit = cfg.search.max_jobs_per_run
         all_jobs: list[Job] = []
 
-        if cfg.portals["linkedin"].enabled:
-            p = cfg.portals["linkedin"]
-            jobs = await LinkedInScraper(p.email, p.password).search_jobs(roles, countries[:8], limit // 5)
-            all_jobs.extend(jobs)
+        scrapers = [
+            ("linkedin",  lambda p: LinkedInScraper(p.email, p.password).search_jobs(roles, countries[:8], limit // 5)),
+            ("indeed",    lambda p: IndeedScraper(p.email, p.password).search_jobs(roles, countries, limit // 5)),
+            ("seek",      lambda p: SeekScraper(p.email, p.password).search_jobs(roles, limit // 5)),
+            ("reed",      lambda p: ReedScraper(p.email, p.password).search_jobs(roles, limit // 5)),
+            ("stepstone", lambda p: StepStoneScraper(p.email, p.password).search_jobs(roles, limit // 5)),
+        ]
 
-        if cfg.portals["indeed"].enabled:
-            p = cfg.portals["indeed"]
-            jobs = await IndeedScraper(p.email, p.password).search_jobs(roles, countries, limit // 5)
-            all_jobs.extend(jobs)
-
-        if cfg.portals["seek"].enabled:
-            p = cfg.portals["seek"]
-            jobs = await SeekScraper(p.email, p.password).search_jobs(roles, limit // 5)
-            all_jobs.extend(jobs)
-
-        if cfg.portals["reed"].enabled:
-            p = cfg.portals["reed"]
-            jobs = await ReedScraper(p.email, p.password).search_jobs(roles, limit // 5)
-            all_jobs.extend(jobs)
-
-        if cfg.portals["stepstone"].enabled:
-            p = cfg.portals["stepstone"]
-            jobs = await StepStoneScraper(p.email, p.password).search_jobs(roles, limit // 5)
-            all_jobs.extend(jobs)
+        for portal_name, scrape_fn in scrapers:
+            portal = cfg.portals[portal_name]
+            if not portal.enabled:
+                print(f"[{portal_name}] skipped (disabled)")
+                continue
+            print(f"[{portal_name}] searching...", flush=True)
+            try:
+                jobs = await scrape_fn(portal)
+                visa_jobs = [j for j in jobs if j.visa_sponsorship]
+                print(f"[{portal_name}] {len(jobs)} raw results, {len(visa_jobs)} with visa sponsorship")
+                all_jobs.extend(visa_jobs)
+            except Exception as e:
+                print(f"[{portal_name}] ERROR: {e}")
 
         new_jobs = []
         for job in all_jobs:
-            if job.visa_sponsorship and not self.tracker.get_job(job.id):
+            if not self.tracker.get_job(job.id):
                 self.tracker.insert_job(job)
                 await self.notifier.notify_new_job(job)
                 new_jobs.append(job)
+                print(f"  + {job.title} | {job.company} | {job.location}")
 
-        print(f"Search complete. {len(new_jobs)} new jobs found.")
+        print(f"\nSearch complete. {len(new_jobs)} new jobs saved.")
         return new_jobs
 
     async def run_apply(self):
