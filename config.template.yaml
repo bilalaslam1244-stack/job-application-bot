@@ -31,8 +31,8 @@ portals:
     password: "REPLACE_ME"
     enabled: true
   indeed:
-    email: "REPLACE_ME"
-    password: ""          # uses magic link login — run: python main.py login indeed
+    email: "b.aslamkl01@gmail.com"
+    password: ""          # no login needed — applies as guest
     enabled: true
   seek:
     email: "REPLACE_ME"
