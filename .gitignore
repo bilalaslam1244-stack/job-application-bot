@@ -1,0 +1,11 @@
+config.yaml
+data/
+logs/
+output/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+data/sessions/
+*.db
+.env

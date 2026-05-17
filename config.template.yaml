@@ -1,0 +1,59 @@
+resume_path: "Bilal_Aslam_Resume_v2.html"
+
+anthropic_api_key: "REPLACE_ME"
+telegram_bot_token: "REPLACE_ME"
+telegram_chat_id: "REPLACE_ME"
+
+search:
+  roles:
+    - "Sales Engineer"
+    - "Project Engineer"
+    - "Automation Engineer"
+    - "Controls Engineer"
+    - "Commissioning Engineer"
+    - "Field Service Engineer"
+  keywords:
+    - "visa sponsorship"
+    - "sponsor visa"
+    - "work permit"
+    - "relocation support"
+  priority_regions:
+    tier1: ["UAE", "Qatar", "Saudi Arabia", "Australia", "France", "Belgium", "United Kingdom", "Ireland"]
+    tier2: ["Netherlands", "Germany", "Canada", "Luxembourg", "New Zealand"]
+    tier3: ["Singapore", "Sweden", "Norway", "Denmark", "Switzerland", "Austria", "Finland"]
+    tier4: ["USA", "Japan", "South Korea", "Portugal", "Spain", "Italy", "Czech Republic", "Poland", "Hong Kong"]
+  exclude_countries: ["India"]
+  max_jobs_per_run: 100
+
+portals:
+  linkedin:
+    email: "REPLACE_ME"
+    password: "REPLACE_ME"
+    enabled: true
+  indeed:
+    email: "REPLACE_ME"
+    password: "REPLACE_ME"
+    enabled: true
+  seek:
+    email: "REPLACE_ME"
+    password: "REPLACE_ME"
+    enabled: true
+  reed:
+    email: "REPLACE_ME"
+    password: "REPLACE_ME"
+    enabled: true
+  stepstone:
+    email: "REPLACE_ME"
+    password: "REPLACE_ME"
+    enabled: true
+
+rate_limits:
+  delay_between_applications_seconds: 30
+  delay_randomisation_seconds: 15
+  max_applications_per_day:
+    linkedin: 0
+    indeed: 30
+    seek: 20
+    reed: 15
+    stepstone: 15
+  status_check_interval_hours: 4
