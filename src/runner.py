@@ -46,10 +46,11 @@ class Runner:
                 continue
             print(f"[{portal_name}] searching...", flush=True)
             try:
-                jobs = await scrape_fn(portal)
-                visa_jobs = [j for j in jobs if j.visa_sponsorship]
-                print(f"[{portal_name}] {len(jobs)} raw results, {len(visa_jobs)} with visa sponsorship")
-                all_jobs.extend(visa_jobs)
+                jobs = await asyncio.wait_for(scrape_fn(portal), timeout=120)
+                print(f"[{portal_name}] {len(jobs)} results found")
+                all_jobs.extend(jobs)
+            except asyncio.TimeoutError:
+                print(f"[{portal_name}] timed out after 2 minutes — skipping")
             except Exception as e:
                 print(f"[{portal_name}] ERROR: {e}")
 

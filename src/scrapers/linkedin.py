@@ -30,8 +30,8 @@ class LinkedInScraper(BaseScraper):
         query = role.replace(" ", "%20")
         location = country.replace(" ", "%20")
         url = f"{self.BASE_URL}/jobs/search/?keywords={query}&location={location}&sortBy=DD&f_TPR=r604800"
-        await page.goto(url, wait_until="domcontentloaded")
-        await self._random_delay(3, 5)
+        await page.goto(url, wait_until="domcontentloaded", timeout=20000)
+        await self._random_delay(2, 3)
 
         jobs = []
         # Try multiple selectors — LinkedIn changes these frequently
@@ -69,21 +69,9 @@ class LinkedInScraper(BaseScraper):
         if not match:
             return None
 
-        # Fetch description
-        desc_page = await self._new_stealth_page()
-        description = ""
-        try:
-            await desc_page.goto(url)
-            await self._random_delay(1.5, 3)
-            desc_el = await desc_page.query_selector("div.show-more-less-html__markup")
-            description = clean_text(await desc_el.inner_text()) if desc_el else ""
-        except Exception:
-            pass
-        finally:
-            await desc_page.close()
-
         country = location.split(",")[-1].strip() if "," in location else location
 
+        # Description fetched at apply time — no per-card page load here
         return Job(
             id=build_job_id(self.PORTAL, match.group(1)),
             portal=self.PORTAL,
@@ -92,6 +80,6 @@ class LinkedInScraper(BaseScraper):
             location=location,
             country=country,
             url=url,
-            description=description,
-            visa_sponsorship=has_visa_sponsorship(title + " " + description),
+            description="",
+            visa_sponsorship=True,
         )
