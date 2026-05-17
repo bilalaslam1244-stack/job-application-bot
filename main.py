@@ -125,20 +125,60 @@ def debug(portal):
         "stepstone": lambda: StepStoneScraper(p.email, p.password).search_jobs(roles, 3),
     }
 
-    print(f"\nDebugging {portal} — role: {roles[0]}, countries: {countries}")
-    print("-" * 50)
-    try:
-        jobs = asyncio.run(scrapers[portal]())
-        if not jobs:
-            print("No jobs returned. Possible causes:")
-            print("  - Selectors changed (portal updated their HTML)")
-            print("  - Login required (run: python main.py login <portal>)")
-            print("  - Search returned no results for these terms")
-        for j in jobs:
-            print(f"  FOUND: {j.title} | {j.company} | {j.location} | visa={j.visa_sponsorship}")
-    except Exception as e:
-        print(f"EXCEPTION: {e}")
-        traceback.print_exc()
+    async def _debug_scrape():
+        from playwright.async_api import async_playwright
+        from playwright_stealth import stealth_async
+        from pathlib import Path
+
+        SEARCH_URLS = {
+            "linkedin":  f"https://www.linkedin.com/jobs/search/?keywords=Sales+Engineer+visa+sponsorship&location={countries[0]}",
+            "indeed":    f"https://www.indeed.com/jobs?q=Sales+Engineer+visa+sponsorship&l={countries[0]}",
+            "seek":      "https://www.seek.com.au/sales-engineer-jobs?visa=1",
+            "reed":      "https://www.reed.co.uk/jobs/sales-engineer-jobs?keywords=visa+sponsorship",
+            "stepstone": "https://www.stepstone.de/jobs/Sales+Engineer?q=visa+sponsorship",
+        }
+
+        async with async_playwright() as p:
+            browser = await p.chromium.launch(headless=True)
+            context = await browser.new_context(
+                viewport={"width": 1280, "height": 800},
+                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            )
+            page = await context.new_page()
+            await stealth_async(page)
+
+            url = SEARCH_URLS[portal]
+            print(f"Loading: {url}")
+            await page.goto(url, wait_until="domcontentloaded", timeout=30000)
+            await asyncio.sleep(3)
+
+            title = await page.title()
+            final_url = page.url
+            print(f"Page title : {title}")
+            print(f"Final URL  : {final_url}")
+
+            # Take screenshot
+            shot_path = f"debug_{portal}.png"
+            await page.screenshot(path=shot_path, full_page=False)
+            print(f"Screenshot : {shot_path}  (open this file to see what the browser loaded)")
+
+            # Count key elements
+            counts = {}
+            selectors = {
+                "linkedin":  ["div.job-search-card", "ul.jobs-search__results-list li", "div[data-job-id]"],
+                "indeed":    ["div.job_seen_beacon", "div.resultContent", "div[class*='job_']"],
+                "seek":      ["article[data-testid='job-card']", "article[class*='job']", "div[data-automation='jobListing']"],
+                "reed":      ["article.job-result", "div.job-result", "article[data-jobid]"],
+                "stepstone": ["article.sc-beqWAB", "article[data-genesis-element='BASE_RESULT_ITEM']", "div[class*='ResultItem']"],
+            }
+            for sel in selectors[portal]:
+                els = await page.query_selector_all(sel)
+                counts[sel] = len(els)
+                print(f"  selector '{sel}' matched: {len(els)}")
+
+            await browser.close()
+
+    asyncio.run(_debug_scrape())
 
 
 @cli.command()
